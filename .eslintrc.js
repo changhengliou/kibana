@@ -448,5 +448,11 @@ module.exports = {
         jquery: true,
       },
     },
+    {
+      files: ['src/ui/public/visualize/components/ol_map.js'],
+      rules: {
+        'no-unsanitized/property': 'warning',
+      },
+    },
   ],
 };

@@ -67,6 +67,13 @@ module.directive('globalNav', (globalNavState, chrome) => {
       scope.toggleGlobalNav = event => {
         event.preventDefault();
         globalNavState.setOpen(!globalNavState.isOpen());
+        if (window.dispatchEvent) {
+          if (!globalNavState.isOpen()) {
+            window.dispatchEvent(new Event('kibana:sidebarOpen'));
+          } else {
+            window.dispatchEvent(new Event('kibana:sidebarClose'));
+          }
+        }
       };
 
       scope.isHomeActive = () => {

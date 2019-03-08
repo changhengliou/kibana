@@ -26,7 +26,7 @@ export function TileMapTooltipFormatterProvider($compile, $rootScope) {
   $compile($el)($tooltipScope);
 
   return function tooltipFormatter(aggConfig, metricAgg, feature) {
-
+    // console.log(feature, metricAgg, aggConfig);
     if (!feature) {
       return '';
     }
@@ -37,17 +37,17 @@ export function TileMapTooltipFormatterProvider($compile, $rootScope) {
         value: metricAgg.fieldFormatter()(feature.properties.value)
       },
       {
-        label: 'Latitude',
+        label: '緯度',
         value: feature.geometry.coordinates[1]
       },
       {
-        label: 'Longitude',
+        label: '經度',
         value: feature.geometry.coordinates[0]
       }
     ];
 
     $tooltipScope.$apply();
-
+    // console.log($el.html());
     return $el.html();
   };
 }

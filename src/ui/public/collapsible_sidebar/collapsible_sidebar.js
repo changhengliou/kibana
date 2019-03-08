@@ -73,6 +73,10 @@ uiModules
             $collapser.attr('aria-expanded', 'false');
           }
 
+          if (window.dispatchEvent) {
+            window.dispatchEvent(new Event(isCollapsed ? 'kibana:sidebarOpen' : 'kibana:sidebarClose'));
+          }
+
           if (hasSingleSibling) {
             $siblings.toggleClass(siblingsClass + ' col-md-12');
           }

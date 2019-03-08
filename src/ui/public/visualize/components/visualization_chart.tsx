@@ -26,7 +26,7 @@ import { dispatchRenderComplete, dispatchRenderStart } from '../../render_comple
 import { ResizeChecker } from '../../resize_checker';
 import { Vis, VisualizationController } from '../../vis';
 import { getUpdateStatus } from '../../vis/update_status';
-
+const { CustomVisMap } = require('./ol_map.js');
 interface VisualizationChartProps {
   onInit?: () => void;
   uiState: PersistedState;
@@ -96,6 +96,7 @@ class VisualizationChart extends React.Component<VisualizationChartProps> {
           className="visualize-chart"
           ref={this.chartDiv}
         />
+        <CustomVisMap />
       </div>
     );
   }

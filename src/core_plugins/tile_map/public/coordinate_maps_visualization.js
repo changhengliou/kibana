@@ -160,7 +160,6 @@ export function CoordinateMapsVisualizationProvider(Notifier, Private) {
     }
 
     _getGeohashOptions() {
-
       const newParams = this._getMapsParams();
       const metricAgg = this._getMetricAgg();
       const boundTooltipFormatter = tooltipFormatter.bind(null, this.vis.getAggConfig(), metricAgg);
