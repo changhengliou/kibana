@@ -18,7 +18,7 @@
  */
 
 import _ from 'lodash';
-import { KibanaMap } from 'ui/vis/map/kibana_map';
+// import { KibanaMap } from 'ui/vis/map/kibana_map';
 import * as Rx from 'rxjs';
 import { filter, first } from 'rxjs/operators';
 import 'ui/vis/map/service_settings';
@@ -101,21 +101,21 @@ export function BaseMapsVisualizationProvider(serviceSettings) {
       options.zoom = !isNaN(zoomFromUiState) ? zoomFromUiState : this.vis.params.mapZoom;
       options.center = centerFromUIState ? centerFromUIState : this.vis.params.mapCenter;
 
-      this._kibanaMap = new KibanaMap(this._container, options);
-      this._kibanaMap.setMinZoom(MINZOOM);//use a default
-      this._kibanaMap.setMaxZoom(MAXZOOM);//use a default
+      this._kibanaMap = null; // new KibanaMap(this._container, options);
+      // this._kibanaMap.setMinZoom(MINZOOM);//use a default
+      // this._kibanaMap.setMaxZoom(MAXZOOM);//use a default
 
-      this._kibanaMap.addLegendControl();
-      this._kibanaMap.addFitControl();
-      this._kibanaMap.persistUiStateForVisualization(this.vis);
+      // this._kibanaMap.addLegendControl();
+      // this._kibanaMap.addFitControl();
+      // this._kibanaMap.persistUiStateForVisualization(this.vis);
 
-      this._kibanaMap.on('baseLayer:loaded', () => {
-        this._baseLayerDirty = false;
-      });
-      this._kibanaMap.on('baseLayer:loading', () => {
-        this._baseLayerDirty = true;
-      });
-      await this._updateBaseLayer();
+      // this._kibanaMap.on('baseLayer:loaded', () => {
+      //   this._baseLayerDirty = false;
+      // });
+      // this._kibanaMap.on('baseLayer:loading', () => {
+      //   this._baseLayerDirty = true;
+      // });
+      // await this._updateBaseLayer();
     }
 
 

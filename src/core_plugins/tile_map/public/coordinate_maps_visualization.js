@@ -38,6 +38,7 @@ export function CoordinateMapsVisualizationProvider(Notifier, Private) {
 
 
     async _makeKibanaMap() {
+      if (!this._kibanaMap) return;
 
       await super._makeKibanaMap();
 
@@ -57,7 +58,6 @@ export function CoordinateMapsVisualizationProvider(Notifier, Private) {
           updateGeohashAgg();
         }
       });
-
       let previousPrecision = this._kibanaMap.getGeohashPrecision();
       let precisionChange = false;
       this._kibanaMap.on('zoomchange', () => {

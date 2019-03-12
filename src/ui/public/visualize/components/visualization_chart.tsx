@@ -92,6 +92,7 @@ class VisualizationChart extends React.Component<VisualizationChartProps> {
           {this.props.vis.type.title} visualization, not yet accessible
         </span>
         <div
+          style={{ display: 'none' }}
           aria-hidden={!this.props.vis.type.isAccessible}
           className="visualize-chart"
           ref={this.chartDiv}

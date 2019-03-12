@@ -64,7 +64,6 @@ export async function bootstrap({
   rawConfigService.loadConfig();
 
   const root = new Root(rawConfigService.getConfig$(), env, onRootShutdown);
-
   function shutdown(reason?: Error) {
     rawConfigService.stop();
     return root.shutdown(reason);

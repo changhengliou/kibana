@@ -82,7 +82,6 @@ export class BasePathProxyServer {
     this.setupRoutes(options);
 
     await this.server.start();
-
     this.log.info(
       `basepath proxy server running at ${this.server.info.uri}${this.httpConfig.basePath}`
     );
