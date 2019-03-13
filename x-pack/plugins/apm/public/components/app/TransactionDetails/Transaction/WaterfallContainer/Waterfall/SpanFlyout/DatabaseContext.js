@@ -1,0 +1,47 @@
+"use strict";
+/*
+ * Copyright Elasticsearch B.V. and/or licensed to Elasticsearch B.V. under one
+ * or more contributor license agreements. Licensed under the Elastic License;
+ * you may not use this file except in compliance with the Elastic License.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = require("tslib");
+const react_1 = tslib_1.__importStar(require("react"));
+const styled_components_1 = tslib_1.__importDefault(require("styled-components"));
+const variables_1 = require("../../../../../../../style/variables");
+const light_1 = tslib_1.__importStar(require("react-syntax-highlighter/dist/light"));
+// @ts-ignore
+const styles_1 = require("react-syntax-highlighter/dist/styles");
+// @ts-ignore
+const sql_1 = tslib_1.__importDefault(require("react-syntax-highlighter/dist/languages/sql"));
+const eui_1 = require("@elastic/eui");
+light_1.registerLanguage('sql', sql_1.default);
+const DatabaseStatement = styled_components_1.default.div `
+  margin-top: ${variables_1.px(variables_1.unit)};
+  padding: ${variables_1.px(variables_1.units.half)} ${variables_1.px(variables_1.unit)};
+  background: ${variables_1.colors.yellow};
+  border-radius: ${variables_1.borderRadius};
+  border: 1px solid ${variables_1.colors.gray4};
+  font-family: ${variables_1.fontFamilyCode};
+`;
+function DatabaseContext({ dbContext }) {
+    if (!dbContext || !dbContext.statement) {
+        return null;
+    }
+    if (dbContext.type !== 'sql') {
+        return react_1.default.createElement(DatabaseStatement, null, dbContext.statement);
+    }
+    return (react_1.default.createElement(react_1.Fragment, null,
+        react_1.default.createElement(eui_1.EuiTitle, { size: "xs" },
+            react_1.default.createElement("h3", null, "Database statement")),
+        react_1.default.createElement(DatabaseStatement, null,
+            react_1.default.createElement(light_1.default, { language: 'sql', style: styles_1.xcode, customStyle: {
+                    color: null,
+                    background: null,
+                    padding: null,
+                    lineHeight: variables_1.px(variables_1.unit * 1.5),
+                    whiteSpace: 'pre-wrap',
+                    overflowX: 'scroll'
+                } }, dbContext.statement))));
+}
+exports.DatabaseContext = DatabaseContext;

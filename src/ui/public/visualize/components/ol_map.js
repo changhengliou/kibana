@@ -38,10 +38,39 @@ import './ol_map.css';
 const MapStatus = Object.freeze({
   ERROR: Symbol('olmap#error'),
   NORMAL: Symbol('olmap#normal'),
-  LOADING: Symbol('olmap#loading')
+  LOADING: Symbol('olmap#loading'),
+  REFRESHING: Symbol('olmap#refresh')
 });
 
 const ErrMsg = () => <div>Error</div>;
+
+const LoadingSpin = (props) => (
+  <div className="sk-circle" style={{ display: props.show ? 'initial' : 'none' }}>
+    <div className="sk-circle1 sk-child" />
+    <div className="sk-circle2 sk-child" />
+    <div className="sk-circle3 sk-child" />
+    <div className="sk-circle4 sk-child" />
+    <div className="sk-circle5 sk-child" />
+    <div className="sk-circle6 sk-child" />
+    <div className="sk-circle7 sk-child" />
+    <div className="sk-circle8 sk-child" />
+    <div className="sk-circle9 sk-child" />
+    <div className="sk-circle10 sk-child" />
+    <div className="sk-circle11 sk-child" />
+    <div className="sk-circle12 sk-child" />
+  </div>
+);
+/**
+ * Customize visualize map for replacement of Kibana map
+ * @param {Map} olMap - openlayer map
+ * @param {Overlay} overlay - openlayer layer
+ * @param {VectorLayer} vectorLayer - openlayer vectorlayer
+ * @param {VectorSources} vectorSources - openlayer vectorsource
+ * @param {number} cronjobHook - cronjob hook for clean up (clearInterval)
+ * @param {string} esIndex - default es index
+ * @param {string} esType - default es type
+ * @param {number} esRefreshInterval - default refresh time to refresh map (request to es server)
+ */
 export class CustomVisMap extends React.Component {
   constructor(props) {
     super(props);
@@ -52,51 +81,50 @@ export class CustomVisMap extends React.Component {
     this.olMap = null;
     this.overlay = null;
     this.vectorLayer = null;
-    this.retriedHook = null;
-    this.loadData = this.loadData.bind(this);
+    this.vectorSources = null;
+    this.cronjobHook = null;
+    this.esIndex = 'meterevents';
+    this.esType = '_doc';
+    this.esRefreshInterval = 5000;
+    ['loadData', 'getKibanaProxyPath', 'getCoordinatesFromEsHits'].forEach(method => {
+      this[method] = this[method].bind(this);
+    });
   }
 
+  /**
+   * initialize component
+   * @param {number} esMapZoom - default zoom, currently 15X
+   * @param {Array} esMapCenter - default map initialize coordinate point
+   */
   componentDidMount() {
     // --- config ---
-    const esIndex = 'meterevents';
-    const esType = '_doc';
+    const { esIndex, esType } = this;
     const esMapZoom = 15;
     const esMapCenter = [121.5251781, 25.0484264]; // longtitude, latitude
 
-    const { pathname } = location;
-    const appIndex = pathname.indexOf('/app/kibana');
     let ajax = null;
-    let proxyPath = '';
-    if (appIndex > 0) proxyPath = pathname.substr(0, appIndex);
 
-    this.retriedHook = setInterval(() => {
+    const retriedHook = setInterval(() => {
       if (ajax && ajax.readyState && ajax.readyState !== 4) {
         ajax.abort();
       }
       ajax = $.ajax({
-        url: `${proxyPath}/api/console/proxy?path=${esIndex}/${esType}/_search&method=GET`,
+        url: `${this.getKibanaProxyPath()}/api/console/proxy?path=${esIndex}/${esType}/_search&method=GET`,
         method: 'POST',
         headers: { 'kbn-version': metadata.version }
       }).done(data => {
-        clearInterval(this.retriedHook);
+        clearInterval(retriedHook);
 
-        const { hits: coordinates, total } = data.hits;
-        const features = new Array(total >= 10000 ? 10000 : total);
-        coordinates.forEach((e, i) => {
-          const [ lat, long ] = e._source
-            .endDeviceEvents[0]
-            .transformers[0]
-            .coordinate
-            .split(',');
-          features[i] = new Feature(new Point(fromLonLat([ parseFloat(long), parseFloat(lat) ])));
-        });
+        const features = this.getCoordinatesFromEsHits(data);
         const styleCache = {};
+        this.vectorSources = new VectorSource({
+          features: features
+        });
+
         this.vectorLayer = new VectorLayer({
           source: new Cluster({
             distance: 40,
-            source: new VectorSource({
-              features: features
-            })
+            source: this.vectorSources
           }),
           style: function (feature) {
             const size = feature.get('features').length;
@@ -195,6 +223,7 @@ export class CustomVisMap extends React.Component {
             return false;
           };
         }
+        this.cronjobHook = setInterval(this.loadData, this.esRefreshInterval);
       }).fail(() => {
         this.setState({ mapStatus: MapStatus.ERROR });
       });
@@ -207,12 +236,14 @@ export class CustomVisMap extends React.Component {
         window.removeEventListener(event, window);
       }
     });
+    if (this.cronjobHook) clearInterval(this.cronjobHook);
     window.onresize = null;
     if (this.olMap) {
       this.olMap.setTarget(null);
       this.olMap = null;
       if (this.overlay) this.overlay = null;
       if (this.vectorLayer) this.vectorLayer = null;
+      if (this.vectorSources) this.vectorSources = null;
     }
   }
 
@@ -224,16 +255,73 @@ export class CustomVisMap extends React.Component {
     console.log(error, info);
   }
 
-  loadData() {
+  /**
+   * get proxy path, since test environment, kibana use proxy path /vhz/app/kibana,
+   * but in production environment use /app/kibana path
+   */
+  getKibanaProxyPath() {
+    const { pathname } = window.location;
+    const appIndex = pathname.indexOf('/app/kibana');
+    let proxyPath = '';
+    if (appIndex > 0) proxyPath = pathname.substr(0, appIndex);
+    return proxyPath;
+  }
 
+  /**
+   * load data from es server
+   */
+  loadData() {
+    const { esIndex, esType } = this;
+    const proxyPath = this.getKibanaProxyPath();
+    this.setState({ mapStatus: MapStatus.REFRESHING });
+    $.ajax({
+      url: `${proxyPath}/api/console/proxy?path=${esIndex}/${esType}/_search&method=GET`,
+      method: 'POST',
+      headers: { 'kbn-version': metadata.version }
+    }).done(data => {
+      if (!this.vectorSources) return;
+      const features = this.getCoordinatesFromEsHits(data);
+      this.vectorSources.clear(false);
+      this.vectorSources.addFeatures(features);
+    }).fail((err) => {
+      console.error(err);
+    }).always(() => {
+      this.setState({ mapStatus: MapStatus.NORMAL });
+    });
+  }
+
+  /**
+   * parse es response data to coordinates used by openlayer
+   * @param {Object} data - ajax from es server
+   */
+  getCoordinatesFromEsHits(data) {
+    const { hits: coordinates, total } = data.hits;
+    const features = new Array(total >= 10000 ? 10000 : total);
+    coordinates.forEach((e, i) => {
+      const [ lat, long ] = e._source
+        .endDeviceEvents[0]
+        .transformers[0]
+        .coordinate
+        .split(',');
+      features[i] = new Feature(new Point(fromLonLat([ parseFloat(long), parseFloat(lat) ])));
+    });
+    return features;
   }
 
   render() {
     const { mapStatus } = this.state;
+    const isRefreshing = mapStatus === MapStatus.REFRESHING;
     return mapStatus === MapStatus.ERROR ? <ErrMsg /> : (
       <Fragment>
         <div id="ol-map" style={{ width: '100%', height: '100%' }}/>
-        { mapStatus === MapStatus.LOADING ? 'LOADING' : null }
+        { mapStatus === MapStatus.LOADING ?
+          <div>
+            <span style={{ position: 'absolute', top: '50%', left: '50%' }}>Kibana Map is loading...</span>
+            <LoadingSpin show/>
+          </div> :
+          null
+        }
+        <LoadingSpin show={isRefreshing} />
         <div
           id="popup"
           className="ol-popup"
